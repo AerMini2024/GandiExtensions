@@ -54,6 +54,7 @@ class AerIframe {
 			}
 			return null;
 		};
+        this.trackedIframes = new Map();
         this.runtime = runtime;
         this.iframeMessageData = null;
         this.htmlMessageData = null;
@@ -390,33 +391,27 @@ class AerIframe {
     }
 
     createiframe(args) {
-		if (this.canvas() === null || this.iframeParent() === null) {
-			return;
-		}
-		let x = Number(args.x);
-		let y = Number(args.y);
-		let width = Number(args.width);
-		let height = Number(args.height);
-		x = this._clamp(x, 0, this.runtime.stageWidth);
-		y = this._clamp(y, 0, this.runtime.stageHeight);
-		width = this._clamp(width, 0, this.runtime.stageWidth - x);
-		height = this._clamp(height, 0, this.runtime.stageHeight - y);
-		x = (x / this.runtime.stageWidth) * 100;
-		y = (y / this.runtime.stageHeight) * 100;
-		width = (width / this.runtime.stageWidth) * 100;
-		height = (height / this.runtime.stageHeight) * 100;
-		let iframes = null;
-		const tempSearch = document.getElementById(`AerIframe${args.id}`);
-        iframes = tempSearch;
-		if (iframes === null) {
-			iframes = document.createElement('iframe');
-			iframes.id = `AerIframe${args.id}`;
-			iframes.className = "AerIframe";
-            iframes.src = `${args.url}`;
-            iframes
-			this.iframeParent().appendChild(iframes);
-		}
-        iframes.style.border = 'none';
+        if (this.canvas() === null || this.iframeParent() === null) return;
+        
+        let x = this._clamp(Number(args.x), 0, this.runtime.stageWidth);
+        let y = this._clamp(Number(args.y), 0, this.runtime.stageHeight);
+        let width = this._clamp(Number(args.width), 0, this.runtime.stageWidth - x);
+        let height = this._clamp(Number(args.height), 0, this.runtime.stageHeight - y);
+        x = (x / this.runtime.stageWidth) * 100;
+        y = (y / this.runtime.stageHeight) * 100;
+        width = (width / this.runtime.stageWidth) * 100;
+        height = (height / this.runtime.stageHeight) * 100;
+
+        const iframeId = `AerIframe${args.id}`;
+        const tempSearch = document.getElementById(iframeId);
+        if (tempSearch !== null) {
+            this.iframeParent().removeChild(tempSearch);
+            this.trackedIframes.delete(iframeId);
+        }
+
+        let iframes = this._createSafeIframe(iframeId, "AerIframe");
+        iframes.src = `${args.url}`;
+        
         iframes.style.overflow = 'auto';
         iframes.style.position = 'absolute';
         iframes.style.pointerEvents = 'auto';
@@ -426,25 +421,8 @@ class AerIframe {
         iframes.style.height = `${height}%`;
         iframes.style.zIndex = 1000;
         
-        const iframeId = `AerIframe${args.id}`;
-        if (!iframeCounts[iframeId]) {
-            iframeCounts[iframeId] = 0;
-        }
-        const maxNestedIframes = 5;
-        if (iframeCounts[iframeId] >= maxNestedIframes) {
-            return;
-        }
-        let iframe = document.getElementById(iframeId);
-        if (iframe === null) {
-            iframe = document.createElement('iframe');
-            iframe.id = iframeId;
-            iframe.className = "AerIframe";
-            iframe.src = `${args.url}`;
-            this.iframeParent().appendChild(iframe);
-            iframeCounts[iframeId]++;
-        }
-        
-	}
+        this.iframeParent().appendChild(iframes);
+    }
 
     /**
      * 创建html页面（使用iframe）
@@ -452,56 +430,34 @@ class AerIframe {
      * @param {string} args.content 自定义iframe内部的内容
      */
     createhtmlpage(args) {
-        if (this.canvas() === null || this.HtmlParent() === null) {
-            return;
-        }
-        if (this.HtmlParent() !== null) {
-		const iframes = document.getElementById(`AerHtml${args.id}`);
-		if (iframes !== null) {
-			this.HtmlParent().removeChild(iframes);
-		}}
-        let x = Number(args.x);
-        let y = Number(args.y);
-        let width = Number(args.width);
-        let height = Number(args.height);
-        x = this._clamp(x, 0, this.runtime.stageWidth);
-        y = this._clamp(y, 0, this.runtime.stageHeight);
-        width = this._clamp(width, 0, this.runtime.stageWidth - x);
-        height = this._clamp(height, 0, this.runtime.stageHeight - y);
+        if (this.canvas() === null || this.HtmlParent() === null) return;
+        
+        let x = this._clamp(Number(args.x), 0, this.runtime.stageWidth);
+        let y = this._clamp(Number(args.y), 0, this.runtime.stageHeight);
+        let width = this._clamp(Number(args.width), 0, this.runtime.stageWidth - x);
+        let height = this._clamp(Number(args.height), 0, this.runtime.stageHeight - y);
         x = (x / this.runtime.stageWidth) * 100;
         y = (y / this.runtime.stageHeight) * 100;
         width = (width / this.runtime.stageWidth) * 100;
         height = (height / this.runtime.stageHeight) * 100;
-        let container = document.getElementById(`AerHtml${args.id}`);
-        if (container === null) {
-            container = document.createElement('iframe');
-            container.id = `AerHtml${args.id}`;
-            container.className = "AerHtml";
-            this.HtmlParent().appendChild(container);
+
+        const iframeId = `AerHtml${args.id}`;
+        const tempSearch = document.getElementById(iframeId);
+        if (tempSearch !== null) {
+            this.HtmlParent().removeChild(tempSearch);
+            this.trackedIframes.delete(iframeId);
         }
+
+        let container = this._createSafeIframe(iframeId, "AerHtml");
         container.style.position = 'absolute';
         container.style.left = `${x}%`;
         container.style.top = `${y}%`;
         container.style.width = `${width}%`;
         container.style.height = `${height}%`;
         container.style.overflow = 'auto';
-        const iframeId = `AerHtml${args.id}`;
-            if (!htmlCounts[iframeId]) {
-                htmlCounts[iframeId] = 0;
-            }
-            const maxNestedIframes = 5;
-            if (htmlCounts[iframeId] >= maxNestedIframes) {
-                return;
-            }
-            let iframe = document.getElementById(iframeId);
-            if (iframe === null) {
-                iframe = document.createElement('iframe');
-                iframe.id = iframeId;
-                iframe.className = "AerHtml";
-                this.iframeParent().appendChild(iframe);
-                htmlCounts[iframeId]++;
-            }
-        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+        
+        this.HtmlParent().appendChild(container);
+        const iframeDoc = container.contentDocument || container.contentWindow.document;
         iframeDoc.open();
         iframeDoc.write(`${args.content}`);
         iframeDoc.close();
@@ -513,82 +469,57 @@ class AerIframe {
      * @param {string} args.content
      */
      createhtmlelement(args) {
-        if (this.canvas() === null || this.HtmlParent() === null) {
-            return;
-        }
-        if (this.HtmlParent() !== null) {
-            const iframes = document.getElementById(`AerHtml${args.id}`);
-            if (iframes !== null) {
-                this.HtmlParent().removeChild(iframes);
-            }}
-        let x1 = Number(args.x);
-        let y1 = Number(args.y);
-        let width1 = Number(args.width);
-        let height1 = Number(args.height);
-        x1 = this._clamp(x1, 0, this.runtime.stageWidth);
-        y1 = this._clamp(y1, 0, this.runtime.stageHeight);
-        width1 = this._clamp(width1, 0, this.runtime.stageWidth - x1);
-        height1 = this._clamp(height1, 0, this.runtime.stageHeight - y1);
+        if (this.canvas() === null || this.HtmlParent() === null) return;
+        
+        let x1 = this._clamp(Number(args.x), 0, this.runtime.stageWidth);
+        let y1 = this._clamp(Number(args.y), 0, this.runtime.stageHeight);
+        let width1 = this._clamp(Number(args.width), 0, this.runtime.stageWidth - x1);
+        let height1 = this._clamp(Number(args.height), 0, this.runtime.stageHeight - y1);
         x1 = (x1 / this.runtime.stageWidth) * 100;
         y1 = (y1 / this.runtime.stageHeight) * 100;
         width1 = (width1 / this.runtime.stageWidth) * 100;
         height1 = (height1 / this.runtime.stageHeight) * 100;
-        let container1 = document.getElementById(`AerHtml${args.id}`);
-        if (container1 === null) {
-            container1 = document.createElement('div');
-            container1.id = `AerHtml${args.id}`;
-            container1.className = "AerHtml";
-            this.HtmlParent().appendChild(container1);
+
+        const iframeId = `AerHtml${args.id}`;
+        const tempSearch = document.getElementById(iframeId);
+        if (tempSearch !== null) {
+            this.HtmlParent().removeChild(tempSearch);
+            this.trackedIframes.delete(iframeId);
         }
+
+        let container1 = this._createSafeIframe(iframeId, "AerHtml");
         container1.style.position = 'absolute';
         container1.style.left = `${x1}%`;
         container1.style.top = `${y1}%`;
         container1.style.width = `${width1}%`;
         container1.style.height = `${height1}%`;
         container1.style.overflow = 'auto';
-        container1.innerHTML = args.content || '';
+        container1.style.backgroundColor = 'transparent';
         
-        const iframeId1 = `AerHtml${args.id}`;
-        if (!htmlCounts[iframeId1]) {
-            htmlCounts[iframeId1] = 0;
-        }
-        const maxNestedIframes1 = 5;
-        if (htmlCounts[iframeId1] >= maxNestedIframes1) {
-            return;
-        }
-        let iframe1 = document.getElementById(iframeId1);
-        if (iframe1 === null) {
-            iframe1 = document.createElement('div');
-            iframe1.id = iframeId1;
-            iframe1.className = "AerHtml";
-            this.iframeParent().appendChild(iframe1);
-            htmlCounts[iframeId1]++;
-        }
+        this.HtmlParent().appendChild(container1);
+        container1.srcdoc = args.content || '';
     }
 
     createhtml(args) {
-        if (this.canvas() === null || this.HtmlParent() === null) {
-            return;
-        }
-        let x = Number(args.x);
-        let y = Number(args.y);
-        let width = Number(args.width);
-        let height = Number(args.height);
-        x = this._clamp(x, 0, this.runtime.stageWidth);
-        y = this._clamp(y, 0, this.runtime.stageHeight);
-        width = this._clamp(width, 0, this.runtime.stageWidth - x);
-        height = this._clamp(height, 0, this.runtime.stageHeight - y);
+        if (this.canvas() === null || this.HtmlParent() === null) return;
+        
+        let x = this._clamp(Number(args.x), 0, this.runtime.stageWidth);
+        let y = this._clamp(Number(args.y), 0, this.runtime.stageHeight);
+        let width = this._clamp(Number(args.width), 0, this.runtime.stageWidth - x);
+        let height = this._clamp(Number(args.height), 0, this.runtime.stageHeight - y);
         x = (x / this.runtime.stageWidth) * 100;
         y = (y / this.runtime.stageHeight) * 100;
         width = (width / this.runtime.stageWidth) * 100;
         height = (height / this.runtime.stageHeight) * 100;
-        let container = document.getElementById(`AerHtml${args.id}`);
-        if (container === null) {
-            container = document.createElement('div');
-            container.id = `AerHtml${args.id}`;
-            container.className = "AerHtml";
-            this.HtmlParent().appendChild(container);
+
+        const iframeId = `AerHtml${args.id}`;
+        const tempSearch = document.getElementById(iframeId);
+        if (tempSearch !== null) {
+            this.HtmlParent().removeChild(tempSearch);
+            this.trackedIframes.delete(iframeId);
         }
+
+        let container = this._createSafeIframe(iframeId, "AerHtml");
         container.style.position = 'absolute';
         container.style.left = `${x}%`;
         container.style.top = `${y}%`;
@@ -596,25 +527,10 @@ class AerIframe {
         container.style.height = `${height}%`;
         container.style.zIndex = 1000;
         container.style.overflow = 'auto';
-        container.innerHTML = args.content || '';
-
-        const iframeId = `AerHtml${args.id}`;
-        if (!htmlCounts[iframeId]) {
-            htmlCounts[iframeId] = 0;
-        }
-        const maxNestedIframes = 5;
-        if (htmlCounts[iframeId] >= maxNestedIframes) {
-            return;
-        }
-        let iframe = document.getElementById(iframeId);
-        if (iframe === null) {
-            iframe = document.createElement('div');
-            iframe.id = iframeId;
-            iframe.className = "AerHtml";
-            iframe.src = `${args.url}`;
-            this.iframeParent().appendChild(iframe);
-            htmlCounts[iframeId]++;
-        }
+        container.style.backgroundColor = 'transparent';
+        
+        this.HtmlParent().appendChild(container);
+        container.srcdoc = args.content || '';
     }
 
     /**
@@ -629,6 +545,7 @@ class AerIframe {
 		const iframes = document.getElementById(`AerIframe${args.id}`);
 		if (iframes !== null) {
 			this.iframeParent().removeChild(iframes);
+            this.trackedIframes.delete(`AerIframe${args.id}`);
 		}
 	}
 
@@ -644,6 +561,7 @@ class AerIframe {
 		const iframes = document.getElementById(`AerHtml${args.id}`);
 		if (iframes !== null) {
 			this.HtmlParent().removeChild(iframes);
+            this.trackedIframes.delete(`AerHtml${args.id}`);
 		}
 	}
 
@@ -670,19 +588,16 @@ class AerIframe {
                 break;
             case "url":
                 const parent = iframe.parentElement;
-                const newIframe = document.createElement('iframe');
-                newIframe.id = iframe.id;
-                newIframe.className = iframe.className;
+                const newIframe = this._createSafeIframe(iframe.id, iframe.className);
                 newIframe.src = args.content;
                 newIframe.style.cssText = iframe.style.cssText;
                 parent.replaceChild(newIframe, iframe);
-                this.iframeMap.set(`${args.id}`, newIframe);
                 break;
             case "overflow":
                 iframe.style.overflow = `${args.content}`;
                 break;
             case "css":
-                iframe.style = `${args.content}`;
+                iframe.style.cssText += `;${args.content}`;
                 break;
             case "epointer":
                 iframe.style.pointerEvents = `${args.content}`;
@@ -712,27 +627,20 @@ class AerIframe {
                 iframe.style.height = `${(Number(args.content) / this.runtime.stageHeight) * 100}%`;
                 break;
             case "content":
-                const parent = iframe.parentElement;
-                if (iframe) {
-                    try {
-                        const iframe = document.getElementById(`AerHtml${args.id}`);
-                        const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-                        iframeDoc.open();
-                        iframeDoc.write(`${args.content}`);
-                        iframeDoc.close();
-                        break;
-                    } catch (error) {
-                        const divElement = document.getElementById(`AerHtml${args.id}`);
-                        divElement.innerHTML = `${args.content}`;
-                        break;
-                    }
+                try {
+                    const htmlDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    htmlDoc.open();
+                    htmlDoc.write(`${args.content}`);
+                    htmlDoc.close();
+                } catch (error) {
+                    iframe.srcdoc = args.content || '';
                 }
                 break;
             case "overflow":
                 iframe.style.overflow = `${args.content}`;
                 break;
             case "css":
-                iframe.style = `${args.content}`;
+                iframe.style.cssText += `;${args.content}`;
                 break;
             case "epointer":
                 iframe.style.pointerEvents = `${args.content}`;
@@ -815,6 +723,7 @@ class AerIframe {
             }
         }
         this.iframeMap.clear();
+        this.trackedIframes.clear();
     }
 
     deleteallhtml() {
@@ -826,6 +735,7 @@ class AerIframe {
             }
         }
         this.iframeMap.clear();
+        this.trackedIframes.clear();
     }
 
     setdisplay(args) {
@@ -1010,6 +920,16 @@ class AerIframe {
         return result;
     }
 
+    _createSafeIframe(id, className) {
+        const iframe = document.createElement('iframe');
+        iframe.id = id;
+        iframe.className = className;
+        iframe.sandbox = "allow-scripts";
+        iframe.style.border = 'none';
+        this.trackedIframes.set(id, iframe);
+        return iframe;
+    }
+
     _clamp(value, min, max) {
         return Math.min(Math.max(value, min), max);
     }
@@ -1036,18 +956,15 @@ class AerIframe {
      */
      _handleMessageEvent(event, hatBlockId) {
         try {
-            if (!event.data || typeof event.data !== 'object') {
-                throw new Error('事件格式无效');
+            let isValidSource = false;
+            for (const trackedIframe of this.trackedIframes.values()) {
+                if (trackedIframe.contentWindow === event.source) {
+                    isValidSource = true;
+                    break;
+                }
             }
-            if (typeof event.data.source !== 'string') {
-                throw new Error('源无效');
-            }
-            if (!('id' in event.data)) {
-                throw new Error('ID不存在');
-            }
-            if (!('data' in event.data)) {
-                throw new Error('数据不存在');
-            }
+            if (!isValidSource) return;
+            
             const rawData = event.data.data;
             let processedData;
             if (rawData === undefined) processedData = 'undefined';
@@ -1063,12 +980,6 @@ class AerIframe {
             });
         } catch (error) {
             console.error(`${hatBlockId} 错误:`, error);
-            this.runtime.startHatsWithParams(hatBlockId, {
-                parameters: {
-                    ID: 'error',
-                    DATA: `[ERROR] ${error.message}`
-                }
-            });
         }
     }
 
